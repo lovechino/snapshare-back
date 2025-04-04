@@ -16,20 +16,15 @@ dotenv.config()
 app.use(express.json())
 app.use(cookieParser())
 app.use(cors({
-    origin :'http://localhost:5173',
+    origin :'https://snapshare-front.onrender.com',
      credentials: true
     }))
 app.use(express.urlencoded({extended:true}))
 
 
-const PORT = 3000
-+
 app.use("/api/user",userRouter)
 app.use("/api/post",postRouter)
 app.use("/api/message",messageRouter)
-// server.listen(PORT,()=>{
-//     connectDb()
-// })
 
 server.listen(3000,()=>{
     connectDb()
