@@ -80,7 +80,8 @@ const Login = async(req,res)=>{
             following : getUser.following
         }
         return res.cookie('token',token,
-            { httpOnly: true, 
+            { 
+            //  httpOnly: true, 
               sameSite: 'lax', 
               maxAge: 1 * 24 * 60 * 60 * 1000,
               secure: true,
