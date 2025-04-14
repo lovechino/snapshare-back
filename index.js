@@ -17,7 +17,7 @@ app.use(express.json())
 app.use(cookieParser())
 app.set("trust proxy", 1);
 app.use(cors({
-    origin :'https://snapshare-front.onrender.com',
+    origin :'https://snapsharemd.netlify.app',
      credentials: true
     }))
 app.use(express.urlencoded({extended:true}))
