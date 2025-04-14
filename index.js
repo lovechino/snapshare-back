@@ -17,7 +17,8 @@ app.use(express.json())
 app.use(cookieParser())
 app.use(cors({
     origin :'https://snapshare-front.onrender.com',
-     credentials: true
+     credentials: true,
+     allowedHeaders : true,
     }))
 app.use(express.urlencoded({extended:true}))
 
