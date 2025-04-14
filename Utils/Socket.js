@@ -6,7 +6,7 @@ const app = express()
 const server = htpp.createServer(app)
 const io = new Server(server,{
     cors: {
-        origin: "https://snapsharemd.netlify.app",
+        origin: "https://snapshare-front.onrender.com",
         methods: ["GET", "POST"],
     }
 })

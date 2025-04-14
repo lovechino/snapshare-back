@@ -83,7 +83,8 @@ const Login = async(req,res)=>{
             { httpOnly: true, 
               sameSite: 'none', 
               maxAge: 1 * 24 * 60 * 60 * 1000,
-              secure: true
+              secure: true,
+              domain : ".onrender.com"
             }
         ).json({
            user: getUser
