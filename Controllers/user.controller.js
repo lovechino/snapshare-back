@@ -5,6 +5,8 @@ const cloudinary = require("../Utils/Cloudinary")
 const dataUri = require("../Utils/Datauri")
 const PostSchema = require("../Schemas/post.schema")
 const UserSchema = require("../Schemas/user.schema")
+const { SendEmail } = require("../Utils/Nodemailer")
+const ResetSchema = require("../Schemas/reset.schema")
 const Register = async(req,res)=>{
     try{
         const {username,email,password,gender} = req.body
@@ -56,11 +58,22 @@ const Login = async(req,res)=>{
                 return null
             })
         )
+        const populateBookmarks = await Promise.all(
+            getUser.bookmarks.map(async(postId)=>{
+                const post = await PostSchema.findById(postId) 
+                if(post?.author.equals(getUser._id)){
+                    return post
+                }
+                return null
+            })
+        )
         getUser = {
             _id :getUser._id,
             username : getUser.username,
             email : getUser.email,
             posts : popolatedPosts,
+            bookmarks : populateBookmarks ,
+            bookmarksId : getUser.bookmarks,
             profilePicture : getUser.profilePicture,
             bio : getUser.bio,
             gender : getUser.gender,
@@ -282,6 +295,125 @@ const getFolloworFler = async(req,res)=>{
 }
 
 
+
+const ResetPassword = async(req,res)=>{
+    const {email} = req.body
+    const subject = "Reset Password"
+ const user = await UserSchema.findOne({email:email}).select("_id")
+ if(user){
+    const data = await ResetSchema.create({
+        res : user._id
+     })
+     const message = `<!DOCTYPE html>
+     <html lang="vi">
+     <head>
+         <meta charset="UTF-8">
+         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+         <title>Liên Kết Đặt Lại Mật Khẩu</title>
+         <style>
+             body {
+                 font-family: Arial, sans-serif;
+                 background-color: #f4f4f4;
+                 display: flex;
+                 justify-content: center;
+                 align-items: center;
+                 min-height: 100vh;
+                 margin: 0;
+             }
+             .container {
+                 background-color: #fff;
+                 padding: 30px;
+                 border-radius: 8px;
+                 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                 text-align: center;
+             }
+             h1 {
+                 color: #333;
+                 margin-bottom: 20px;
+             }
+             .link-box {
+                 background-color: #e3f2fd;
+                 padding: 15px;
+                 border-radius: 5px;
+                 margin-bottom: 20px;
+                 font-size: 1.1em;
+             }
+             .link-box a {
+                 color: #1976d2;
+                 text-decoration: none;
+                 font-weight: bold;
+             }
+             .link-box a:hover {
+                 text-decoration: underline;
+             }
+             p {
+                 color: #555;
+                 margin-bottom: 10px;
+             }
+             .important {
+                 font-weight: bold;
+                 color: #d32f2f;
+             }
+             .note {
+                 font-size: 0.9em;
+                 color: #777;
+                 margin-top: 20px;
+             }
+         </style>
+     </head>
+     <body>
+         <div class="container">
+             <h1>Yêu Cầu Đặt Lại Mật Khẩu</h1>
+             <p>Xin chào,</p>
+             <p>Bạn vừa yêu cầu đặt lại mật khẩu cho tài khoản của mình.</p>
+             <p>Vui lòng nhấp vào liên kết dưới đây để tiến hành đặt lại mật khẩu:</p>
+             <div class="link-box">
+                 <a href="http://localhost:5173/change-password/${data?._id}">${email}</a>
+             </div>
+             <p><span class="important">Lưu ý quan trọng:</span> Liên kết này sẽ hết hạn sau một khoảng thời gian nhất định. Vui lòng thực hiện đặt lại mật khẩu trong thời gian quy định.</p>
+             <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này. Tài khoản của bạn vẫn an toàn.</p>
+             <div class="note">
+                 Đây là email được gửi tự động, vui lòng không trả lời.
+             </div>
+         </div>
+     </body>
+     </html>`;
+    await SendEmail({message,subject,email})
+    return res.status(200).send({message: 'Email is sent'});
+ }else{
+    return res.status(401).json({
+        message: "Email isn't exist"
+    })
+ }
+//  const data = await ResetSchema.create({
+//     res : user._id
+//  })
+//  console.log(data)
+}
+
+const ChangePassword = async(req,res)=>{
+    const password = req.body.password 
+    const id = req.params.id 
+    const resetValue = await ResetSchema.findById(id).populate({
+        path: 'res',
+        select : "_id"
+    })
+    // console.log(resetValue.res._id)
+    if(resetValue){
+        const hassPass = await bcrypt.hash(password,10)
+        await UserSchema.findByIdAndUpdate(resetValue.res._id,{$set:{password:hassPass}})
+        await ResetSchema.findByIdAndDelete(id)
+        return res.status(200).json({
+            message : "Password changed successfully"
+        })
+    }else{
+        return res.status(401).json({
+            message: "Reset Value isn't exist"
+        })
+    }
+}
+
+
 module.exports = {
     Register,
     Login,
@@ -292,7 +424,9 @@ module.exports = {
     getSuggestUsers,
     mutualFollowers,
     SearchUser,
-    getFolloworFler
+    getFolloworFler,
+    ResetPassword,
+    ChangePassword
 }
 
 

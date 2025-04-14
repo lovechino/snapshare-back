@@ -4,7 +4,7 @@ const isAuthenticated = require("../Middleware/isAuthenticated")
 const upload = require("../Middleware/multer")
 const{addNewPost, getAllPost, getUserPost, likePost, dislikePost, addComment, getComment, deletePost, bookmarkPost} = require("../Controllers/post.controller")
 
-router.post("/addpost",isAuthenticated,upload.single('img'),addNewPost)
+router.post("/addpost",upload.single('img'),addNewPost)
 router.get("/all",isAuthenticated,getAllPost)
 router.get("/userpost/all",isAuthenticated,getUserPost)
 router.get("/like/:id",isAuthenticated,likePost)

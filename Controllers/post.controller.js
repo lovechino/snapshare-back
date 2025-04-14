@@ -19,7 +19,7 @@ const addNewPost = async(req,res)=>{
         .resize({width:800,height:800,fit:'inside'})
         .toFormat('jpeg',{quality:80})
         .toBuffer()
-        //buffer to data uri
+        
         const fileUri = `data:image/jpeg;base64,${optimizedImg.toString('base64')}`
         const cloudRes = await cloudinary.uploader.upload(fileUri)
         const post = await Post.create({
@@ -36,6 +36,7 @@ const addNewPost = async(req,res)=>{
         res.status(200).json({
             post
         })
+       
     }catch(err){
         return res.status(401).json({
             message : err.message
