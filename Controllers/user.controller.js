@@ -79,17 +79,21 @@ const Login = async(req,res)=>{
             gender : getUser.gender,
             following : getUser.following
         }
-        return res.cookie('token',token,
-            { 
-            //  httpOnly: true, 
-              sameSite: 'none', 
-              maxAge: 1 * 24 * 60 * 60 * 1000,
-              secure: true,
-              domain : ".onrender.com",
-              path: '/'
-            }
-        ).json({
-           user: getUser
+        // return res.cookie('token',token,
+        //     { 
+        //      httpOnly: true, 
+        //       sameSite: 'none', 
+        //       maxAge: 1 * 24 * 60 * 60 * 1000,
+        //       secure: true,
+        //       domain : ".onrender.com",
+        //       path: '/'
+        //     }
+        // ).json({
+        //    user: getUser,
+        // })
+        return res.status(200).json({
+            user: getUser,
+            token : token
         })
     }catch(err){
         return res.status(401).json({
