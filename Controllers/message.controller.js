@@ -105,34 +105,34 @@ const sendAudio = async(req,res)=>{
         }
       
         
-        const newMessage = await Message.create({
-            senderId: senderId,
-            receiverId: receiverId,
-            // message: message ,
-            audio: audioUrl 
-        })
-        if (newMessage) {
-            conversation.messages.push(newMessage._id);
-        }
-        await Promise.all([
-            conversation.save(),
-            newMessage.save()
-        ])
+        // const newMessage = await Message.create({
+        //     senderId: senderId,
+        //     receiverId: receiverId,
+        //     // message: message ,
+        //     audio: audioUrl 
+        // })
+        // if (newMessage) {
+        //     conversation.messages.push(newMessage._id);
+        // }
+        // await Promise.all([
+        //     conversation.save(),
+        //     newMessage.save()
+        // ])
 
-        const receiverSocketId = getReceiverSocketId(receiverId);
-        if (receiverSocketId) {
-            io.to(receiverSocketId).emit('newMessage', newMessage);
-        }
+        // const receiverSocketId = getReceiverSocketId(receiverId);
+        // if (receiverSocketId) {
+        //     io.to(receiverSocketId).emit('newMessage', newMessage);
+        // }
 
-        const senderUser = await UserSchema.findById(senderId).select("username profilePicture").lean();
-        if (receiverSocketId && senderUser) {
-            io.to(receiverSocketId).emit('notiMessage', {
-                type: 'newMessage',
-                senderId: senderId,
-                senderUsername: senderUser.username,
-                senderProfilePicture: senderUser.profilePicture
-            });
-        }
+        // const senderUser = await UserSchema.findById(senderId).select("username profilePicture").lean();
+        // if (receiverSocketId && senderUser) {
+        //     io.to(receiverSocketId).emit('notiMessage', {
+        //         type: 'newMessage',
+        //         senderId: senderId,
+        //         senderUsername: senderUser.username,
+        //         senderProfilePicture: senderUser.profilePicture
+        //     });
+        // }
         
         res.status(200).json({ message: "message sent successfully", newMessage });
     }catch(err){
