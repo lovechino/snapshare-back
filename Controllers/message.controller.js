@@ -87,7 +87,7 @@ const sendAudio = async(req,res)=>{
         const senderId = req.id 
         const receiverId = req.params.id;
         const audio = req?.file;
-        // const {message} = req.body 
+        const {message} = req.body 
 
         let conversation = await Conversation.findOne({
             participants: { $all: [senderId, receiverId] }
@@ -101,16 +101,17 @@ const sendAudio = async(req,res)=>{
             cloudRes = await cloudinary.uploader.upload(fileUri, { 
                 resource_type: "auto",
             });
+        
             audioUrl = cloudRes.secure_url
         }
-      
         
-        // const newMessage = await Message.create({
-        //     senderId: senderId,
-        //     receiverId: receiverId,
-        //     // message: message ,
-        //     audio: audioUrl 
-        // })
+        const newMessage = await Message.create({
+            senderId: senderId,
+            receiverId: receiverId,
+            // message: message ,
+            audio: audioUrl 
+        })
+        res.status(200).json({ message: "message sent successfully", value : newMessage});
         // if (newMessage) {
         //     conversation.messages.push(newMessage._id);
         // }
@@ -134,7 +135,7 @@ const sendAudio = async(req,res)=>{
         //     });
         // }
         
-        res.status(200).json({ message: "message sent successfully", newMessage });
+      
     }catch(err){
         return res.status(500).json({
             message: err.message
