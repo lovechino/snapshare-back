@@ -4,6 +4,7 @@ const Conversation = require("../Schemas/conversation.schema")
 const Message = require("../Schemas/message.schema")
 const UserSchema = require("../Schemas/user.schema")
 const { getReceiverSocketId, io } = require("../Utils/Socket")
+
 const sendMessage = async(req,res)=>{
     try {
         const senderId = req.id;
@@ -95,49 +96,45 @@ const sendAudio = async(req,res)=>{
         let cloudRes 
         let audioUrl 
         const fileUri = `data:audio/mp3;base64,${audio?.buffer.toString('base64')}`;
-        
-        res.json({
-            audio
-        })
-        // if(audio){
+        if(audio){
           
-        //     cloudRes = await cloudinary.uploader.upload(fileUri, { 
-        //         resource_type: "auto",
-        //     });
-        //     audioUrl = cloudRes.secure_url
-        // }
+            cloudRes = await cloudinary.uploader.upload(fileUri, { 
+                resource_type: "auto",
+            });
+            audioUrl = cloudRes.secure_url
+        }
       
         
-        // const newMessage = await Message.create({
-        //     senderId: senderId,
-        //     receiverId: receiverId,
-        //     // message: message ,
-        //     audio: audioUrl 
-        // })
-        // if (newMessage) {
-        //     conversation.messages.push(newMessage._id);
-        // }
-        // await Promise.all([
-        //     conversation.save(),
-        //     newMessage.save()
-        // ])
+        const newMessage = await Message.create({
+            senderId: senderId,
+            receiverId: receiverId,
+            // message: message ,
+            audio: audioUrl 
+        })
+        if (newMessage) {
+            conversation.messages.push(newMessage._id);
+        }
+        await Promise.all([
+            conversation.save(),
+            newMessage.save()
+        ])
 
-        // const receiverSocketId = getReceiverSocketId(receiverId);
-        // if (receiverSocketId) {
-        //     io.to(receiverSocketId).emit('newMessage', newMessage);
-        // }
+        const receiverSocketId = getReceiverSocketId(receiverId);
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit('newMessage', newMessage);
+        }
 
-        // const senderUser = await UserSchema.findById(senderId).select("username profilePicture").lean();
-        // if (receiverSocketId && senderUser) {
-        //     io.to(receiverSocketId).emit('notiMessage', {
-        //         type: 'newMessage',
-        //         senderId: senderId,
-        //         senderUsername: senderUser.username,
-        //         senderProfilePicture: senderUser.profilePicture
-        //     });
-        // }
+        const senderUser = await UserSchema.findById(senderId).select("username profilePicture").lean();
+        if (receiverSocketId && senderUser) {
+            io.to(receiverSocketId).emit('notiMessage', {
+                type: 'newMessage',
+                senderId: senderId,
+                senderUsername: senderUser.username,
+                senderProfilePicture: senderUser.profilePicture
+            });
+        }
         
-        // res.status(200).json({ message: "message sent successfully", newMessage });
+        res.status(200).json({ message: "message sent successfully", newMessage });
     }catch(err){
         return res.status(500).json({
             message: err.message
