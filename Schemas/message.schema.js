@@ -13,10 +13,10 @@ const messageSchema = mongoose.Schema({
         type: String,
         // required: true
     },
-    image : {
+    image: [{ 
         type: String,
-        default : ""
-    },
+        default: [] 
+    }],
     audio : {
         type: String,
         default : ""

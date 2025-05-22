@@ -6,7 +6,7 @@ const upload = require("../Middleware/multer")
 
 router.use(isAuthenticated)
 
-router.post("/send/:id",upload.single("image"),sendMessage)
+router.post("/send/:id",upload.array("images"),sendMessage)
 router.get("/all/:id",getMessage)
 router.post("/audio/:id",upload.single("audio"),sendAudio)
 module.exports = router

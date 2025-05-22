@@ -10,8 +10,8 @@ const sendMessage = async(req,res)=>{
         const senderId = req.id;
         const receiverId = req.params.id;
         const { message } = req.body;
-        const image = req?.file;
-        let cloudRes;
+        const images = req.files; 
+        const imageUrls = [];
 
         let conversation = await Conversation.findOne({
             participants: { $all: [senderId, receiverId] }
@@ -20,42 +20,49 @@ const sendMessage = async(req,res)=>{
         if (!conversation) {
             conversation = await Conversation.create({
                 participants: [senderId, receiverId],
-                messages: [] 
+                messages: []
             });
         }
 
-        let imageUrl = "";
-        if (image) {
+        if (images && images.length > 0) {
             try {
-                const optimizedImg = await sharp(image?.buffer)
-                    .resize({ width: 800, height: 800, fit: 'inside' })
-                    .toFormat('jpeg', { quality: 80 })
-                    .toBuffer();
+                const uploadPromises = images.map(async (imageFile) => {
+                    const optimizedImg = await sharp(imageFile.buffer)
+                        .resize({ width: 800, height: 800, fit: 'inside' })
+                        .toFormat('jpeg', { quality: 80 })
+                        .toBuffer();
 
-                const fileUri = `data:image/jpeg;base64,${optimizedImg.toString('base64')}`;
-                cloudRes = await cloudinary.uploader.upload(fileUri);
-                imageUrl = cloudRes?.secure_url;
+                    const fileUri = `data:image/jpeg;base64,${optimizedImg.toString('base64')}`;
+                    const cloudRes = await cloudinary.uploader.upload(fileUri);
+                    return cloudRes.secure_url;
+                });
+
+                const uploadedUrls = await Promise.all(uploadPromises);
+                imageUrls.push(...uploadedUrls); 
             } catch (uploadErr) {
-                console.error("Error uploading image:", uploadErr);
-                return res.status(500).json({ message: "Failed to upload image" });
+                console.error("Error processing and uploading images:", uploadErr);
+                return res.status(500).json({ message: "Failed to process and upload images", error: uploadErr.message });
             }
         }
 
-        const newMessage = await Message.create({
+        const newMessage = new Message({
             senderId: senderId,
             receiverId: receiverId,
             message: message,
-            image: imageUrl
+            image: imageUrls.length > 0 ? imageUrls : undefined // Lưu mảng URLs hoặc undefined nếu không có ảnh
         });
 
-        if (newMessage) {
+        try {
+            await Promise.all([
+                conversation.save(),
+                newMessage.save()
+            ]);
             conversation.messages.push(newMessage._id);
+            await conversation.save();
+        } catch (saveError) {
+            console.error("Error saving message or conversation:", saveError);
+            return res.status(500).json({ message: "Failed to save message or conversation", error: saveError.message });
         }
-
-        await Promise.all([
-            conversation.save(),
-            newMessage.save()
-        ]);
 
         const receiverSocketId = getReceiverSocketId(receiverId);
         if (receiverSocketId) {
@@ -72,13 +79,11 @@ const sendMessage = async(req,res)=>{
             });
         }
 
-        res.status(200).json({ message: "message sent successfully", newMessage });
+        res.status(200).json({ message: "Message sent successfully", newMessage });
 
     } catch (err) {
         console.error("Error sending message:", err);
-        return res.status(500).json({
-            message: err.message
-        });
+        return res.status(500).json({ message: "Failed to send message", error: err.message });
     }
 }
 
@@ -87,29 +92,25 @@ const sendAudio = async(req,res)=>{
         const senderId = req.id 
         const receiverId = req.params.id;
         const audio = req?.file;
-        const {message} = req.body 
+        // const {message} = req.body 
 
         let conversation = await Conversation.findOne({
             participants: { $all: [senderId, receiverId] }
         })
        
         let cloudRes 
-        let audioUrl 
+        let audioUrl
         const fileUri = `data:audio/mp3;base64,${audio?.buffer.toString('base64')}`;
-        if(audio){
-          
-            cloudRes = await cloudinary.uploader.upload(fileUri, { 
+        cloudRes = await cloudinary.uploader.upload(fileUri, { 
                 resource_type: "auto",
             });
-        
-            audioUrl = cloudRes.secure_url
-        }
-        
+        audioUrl = cloudRes.secure_url
+          
         const newMessage = await Message.create({
             senderId: senderId,
             receiverId: receiverId,
-            // message: message ,
-            audio: audioUrl 
+          
+            audio: audioUrl
         })
         
         if (newMessage) {
