@@ -164,8 +164,49 @@ const getMessage = async(req,res)=>{
     }
 }
 
+const getConversations = async(req,res)=>{
+    try{
+        const userId = req.id;
+        const conversations = await Conversation.find({
+            participants: userId
+        })
+        .populate({
+            path: 'participants',
+            select: 'username profilePicture'
+        })
+        .populate({
+            path: 'messages',
+            options: { sort: { createdAt: -1 }, limit: 1 }
+        })
+        .sort({ updatedAt: -1 });
+
+        // Transform conversations to only include other participant's info
+        const transformedConversations = conversations.map(conversation => {
+            const otherParticipant = conversation.participants.find(
+                participant => participant._id.toString() !== userId
+            );
+            
+            return {
+                _id: conversation._id,
+                participant: otherParticipant,
+                // lastMessage: conversation.messages[0] || null,
+                // updatedAt: conversation.updatedAt
+            };
+        });
+
+        return res.status(200).json({
+            conversations: transformedConversations
+        });
+    }catch(err){
+        return res.status(500).json({
+            message: err.message
+        });
+    }
+}
+
 module.exports = {
     sendMessage,
     getMessage,
-    sendAudio
+    sendAudio,
+    getConversations
 }

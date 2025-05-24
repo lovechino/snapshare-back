@@ -328,6 +328,67 @@ const getComment = async(req,res)=>{
     }
 }
 
+const updatePost = async(req,res)=>{
+    try{
+        const postId = req.params.id;
+        const authorId = req.id;
+        const {caption} = req.body;
+        const img = req.file;
+
+        const post = await Post.findById(postId);
+        if(!post){
+            return res.status(404).json({message: 'Post not found'});
+        }
+
+        if(post.author.toString() !== authorId){
+            return res.status(401).json({message: 'You are not the author of this post'});
+        }
+
+        let updateData = {};
+        
+        if(caption){
+            updateData.caption = caption;
+        }
+
+        if(img){
+            const optimizedImg = await sharp(img.buffer)
+                .resize({width:800, height:800, fit:'inside'})
+                .toFormat('jpeg', {quality:80})
+                .toBuffer();
+            
+            const fileUri = `data:image/jpeg;base64,${optimizedImg.toString('base64')}`;
+            const cloudRes = await cloudinary.uploader.upload(fileUri);
+            updateData.image = cloudRes.secure_url;
+        }
+
+        const updatedPost = await Post.findByIdAndUpdate(
+            postId,
+            updateData,
+            {new: true}
+        ).populate({
+            path: 'author',
+            select: 'username profilePicture'
+        }).populate({
+            path: 'comments',
+            sort: {createdAt: -1},
+            populate: {
+                path: 'author',
+                select: 'username profilePicture'
+            }
+        });
+
+        return res.status(200).json({
+            message: 'Post updated successfully',
+            post: updatedPost
+        });
+
+    }catch(err){
+        return res.status(500).json({
+            message: err.message
+        });
+    }
+}
+
 module.exports = {
     addNewPost,
     getAllPost,
@@ -337,5 +398,6 @@ module.exports = {
     bookmarkPost,
     deletePost,
     addComment,
-    getComment
+    getComment,
+    updatePost
 }
